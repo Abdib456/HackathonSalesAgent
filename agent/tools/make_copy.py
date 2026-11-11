@@ -1,0 +1,1 @@
+# writes ad headlines, captions, hooks

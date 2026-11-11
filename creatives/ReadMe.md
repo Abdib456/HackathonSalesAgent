@@ -1,0 +1,1 @@
+# every ad that went live, plus INDEX.md

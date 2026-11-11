@@ -1,0 +1,1 @@
+# Nano Banana Pro: static ad creatives

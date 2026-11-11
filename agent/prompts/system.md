@@ -1,0 +1,1 @@
+# who the agent is, the product, the goal, the rules

@@ -1,0 +1,1 @@
+# Hackathon rules + project context, Claude Code reads it every session
