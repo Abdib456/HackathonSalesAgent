@@ -6,3 +6,5 @@ footage/*
 *.mp4
 *.mov
 *.m4a
+logs/outbound/*
+!logs/outbound/ReadMe.md
