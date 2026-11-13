@@ -4,6 +4,7 @@
 # hardcodes a key. Secrets come only from .env (gitignored).
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -14,6 +15,9 @@ load_dotenv(ROOT / ".env")
 # Budget (GBP): hard cap and the points where the agent warns the human
 BUDGET_CAP_GBP = 100.0
 BUDGET_WARNINGS_GBP = (50.0, 75.0, 90.0)
+
+# Revenue freeze: 18 Nov 2026, 6pm UK (UK is on GMT in November, so = UTC)
+FREEZE_UTC = datetime(2026, 11, 18, 18, 0, tzinfo=timezone.utc)
 
 # Most APIs bill in USD. Slightly pessimistic rate so spend is never under-counted.
 USD_TO_GBP = 0.80
