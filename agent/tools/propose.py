@@ -2,7 +2,8 @@
 #
 # Turns a script from write_script into a human-readable plan in
 # approvals/pending/<reel-id>.md: what to film, what to say, where to drop
-# the files. Approving = moving the file to approvals/approved/ (one touch).
+# the files. The agent edits once footage arrives; the human approves the
+# finished reel by moving the file to approvals/approved/ (one touch).
 # The machine-readable script is embedded at the bottom so the plan is one file.
 
 import json
@@ -52,9 +53,11 @@ e.g. `scene-01.mp4`, `scene-02.jpg`. Photos are fine for static shots.
 ## Caption
 {script['caption']}
 
-## To approve
-1. Check the files are in `footage/{reel_id}/`.
-2. Move this file to `approvals/approved/`. That is your go-ahead and is logged as a touch.
+## Next steps
+1. Drop the files into `footage/{reel_id}/`. The agent edits the reel automatically
+   on its next run and saves it as `creatives/{reel_id}.mp4`.
+2. Watch the finished reel. If it's good, move this file to `approvals/approved/`.
+   That is your go-ahead to publish and is logged as a touch.
 
 <!-- machine-readable plan, don't edit below -->
 ```json
@@ -84,7 +87,7 @@ def read_plan(path: Path) -> dict:
 
 
 def approved_plans() -> list[dict]:
-    """Plans the human has moved to approvals/approved/. Logs each approval once as a touch."""
+    """Finished reels the human has approved to publish. Logs each approval once as a touch."""
     if not APPROVED.exists():
         return []
     logged = set()

@@ -1,1 +1,1 @@
-# You move a plan here = your go-ahead (a touch)
+# You move a plan here after watching the finished reel = go-ahead to publish (a touch)
