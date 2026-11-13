@@ -66,8 +66,9 @@ def chargebacks_gbp() -> float:
     return sum(d["amount"] for d in _list("disputes") if d["status"] != "won") / 100
 
 
-def summary() -> dict:
-    s = sales()
+def summary(s: list[dict] | None = None) -> dict:
+    """Totals as the judges count them. Pass sales() in to avoid fetching twice."""
+    s = sales() if s is None else s
     counted = [x for x in s if x["before_freeze"]]
     gross = sum(x["gbp"] for x in counted)
     refunds, chargebacks = refunds_gbp(), chargebacks_gbp()
