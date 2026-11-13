@@ -79,7 +79,8 @@ def _scene(src: Path, text: str, dur: float, out: Path, tmp: Path, font: str) ->
     vf = (
         f"scale={W}:{H}:force_original_aspect_ratio=increase,crop={W}:{H},setsar=1,fps={FPS},"
         f"tpad=stop_mode=clone:stop_duration={dur},"
-        f"drawtext=fontfile='{_esc(font)}':textfile='{_esc(textfile)}':fontsize=68:fontcolor=white:"
+        # expansion=none: show text literally, so "50% off" doesn't crash ffmpeg
+        f"drawtext=fontfile='{_esc(font)}':expansion=none:textfile='{_esc(textfile)}':fontsize=68:fontcolor=white:"
         f"borderw=5:bordercolor=black:line_spacing=14:x=(w-text_w)/2:y=h*0.16"
     )
     inp = ["-loop", "1", "-i", src] if src.suffix.lower() in IMAGE_EXT else ["-i", src]
@@ -125,4 +126,6 @@ def make_reel(plan: dict, run: Path) -> Path | None:
 
     logger.log_event(run, "reel_made", reel_id=reel_id, path=str(out.relative_to(config.ROOT)),
                      seconds=total, voiceover=bool(voiceover))
+    # Filming/recording is a human step the rules count as a touch
+    logger.log_touch("human", "filmed footage" + (" + recorded voiceover" if voiceover else ""), reel_id)
     return out
