@@ -15,6 +15,9 @@ load_dotenv(ROOT / ".env")
 BUDGET_CAP_GBP = 100.0
 BUDGET_WARNINGS_GBP = (50.0, 75.0, 90.0)
 
+# Most APIs bill in USD. Slightly pessimistic rate so spend is never under-counted.
+USD_TO_GBP = 0.80
+
 # Log locations (kept forever as audit evidence)
 LOGS_DIR = ROOT / "logs"
 RUNS_DIR = LOGS_DIR / "runs"
