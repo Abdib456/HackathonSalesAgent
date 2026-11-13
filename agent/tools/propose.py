@@ -1,1 +1,102 @@
 # writes a reel plan + spend amount for approval
+#
+# Turns a script from write_script into a human-readable plan in
+# approvals/pending/<reel-id>.md: what to film, what to say, where to drop
+# the files. Approving = moving the file to approvals/approved/ (one touch).
+# The machine-readable script is embedded at the bottom so the plan is one file.
+
+import json
+import re
+from pathlib import Path
+
+from agent import config, logger
+
+APPROVALS = config.ROOT / "approvals"
+PENDING = APPROVALS / "pending"
+APPROVED = APPROVALS / "approved"
+FOOTAGE = config.ROOT / "footage"
+
+_JSON_BLOCK = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
+
+
+def _next_reel_id() -> str:
+    used = [int(m.group(1)) for d in (PENDING, APPROVED, FOOTAGE) if d.exists()
+            for p in d.iterdir() if (m := re.match(r"reel-(\d+)", p.name))]
+    return f"reel-{max(used, default=0) + 1:03d}"
+
+
+def _render(reel_id: str, script: dict, paid_spend_gbp: float) -> str:
+    rows = "\n".join(
+        f"| {i:02d} | {s['seconds']}s | {s['shot']} | {s['on_screen_text']} | {s['voiceover']} |"
+        for i, s in enumerate(script["scenes"], start=1)
+    )
+    voiceover = " ".join(s["voiceover"] for s in script["scenes"] if s["voiceover"])
+    plan = {"reel_id": reel_id, "paid_spend_gbp": paid_spend_gbp, "script": script}
+    return f"""# {reel_id}: {script['idea']}
+
+**Hook (first 2s):** {script['hook']}
+**Comment keyword:** {script['keyword']}
+**Paid spend requested:** £{paid_spend_gbp:.2f}
+
+## Shot list
+Film each scene and drop the file into `footage/{reel_id}/` named by scene number,
+e.g. `scene-01.mp4`, `scene-02.jpg`. Photos are fine for static shots.
+
+| # | Time | Shot | On-screen text | Voiceover |
+|---|------|------|----------------|-----------|
+{rows}
+
+## Full voiceover (record in one take, save as `footage/{reel_id}/voiceover.m4a`)
+{voiceover}
+
+## Caption
+{script['caption']}
+
+## To approve
+1. Check the files are in `footage/{reel_id}/`.
+2. Move this file to `approvals/approved/`. That is your go-ahead and is logged as a touch.
+
+<!-- machine-readable plan, don't edit below -->
+```json
+{json.dumps(plan, indent=2, ensure_ascii=False)}
+```
+"""
+
+
+def propose(script: dict, run: Path, paid_spend_gbp: float = 0.0) -> Path:
+    """Write the plan to approvals/pending/ and create its footage folder."""
+    reel_id = _next_reel_id()
+    PENDING.mkdir(parents=True, exist_ok=True)
+    (FOOTAGE / reel_id).mkdir(parents=True, exist_ok=True)
+    path = PENDING / f"{reel_id}.md"
+    path.write_text(_render(reel_id, script, paid_spend_gbp), encoding="utf-8")
+    logger.log_event(run, "plan_proposed", reel_id=reel_id, path=str(path.relative_to(config.ROOT)),
+                     paid_spend_gbp=paid_spend_gbp)
+    return path
+
+
+def read_plan(path: Path) -> dict:
+    """Get the embedded plan back out of a .md file."""
+    match = _JSON_BLOCK.search(path.read_text(encoding="utf-8"))
+    if not match:
+        raise ValueError(f"No plan data found in {path.name}")
+    return json.loads(match.group(1))
+
+
+def approved_plans() -> list[dict]:
+    """Plans the human has moved to approvals/approved/. Logs each approval once as a touch."""
+    if not APPROVED.exists():
+        return []
+    logged = set()
+    if config.TOUCHES_LOG.exists():
+        for line in config.TOUCHES_LOG.read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                logged.add(json.loads(line).get("note"))
+
+    plans = []
+    for path in sorted(APPROVED.glob("reel-*.md")):
+        plan = read_plan(path)
+        if plan["reel_id"] not in logged:
+            logger.log_touch("human", "approved reel plan (moved to approvals/approved/)", plan["reel_id"])
+        plans.append(plan)
+    return plans

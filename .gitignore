@@ -1,3 +1,8 @@
 .env
 __pycache__/
 *.pyc
+footage/*
+!footage/ReadMe.md
+*.mp4
+*.mov
+*.m4a
