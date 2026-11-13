@@ -74,8 +74,9 @@ def step_new_plans(run) -> None:
 
 
 def step_make_reels(run) -> None:
-    """Edit any plan whose footage has arrived."""
-    for path in sorted(propose.PENDING.glob("reel-*.md")) if propose.PENDING.exists() else []:
+    """Edit any plan whose footage has arrived (pending, or approved before it was edited)."""
+    plans = [p for d in (propose.PENDING, propose.APPROVED) if d.exists() for p in d.glob("reel-*.md")]
+    for path in sorted(plans):
         if not (make_reel.CREATIVES / f"{path.stem}.mp4").exists():
             make_reel.make_reel(propose.read_plan(path), run)  # logs "waiting" if footage missing
 

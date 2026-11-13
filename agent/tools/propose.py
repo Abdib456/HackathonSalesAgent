@@ -90,16 +90,18 @@ def approved_plans() -> list[dict]:
     """Finished reels the human has approved to publish. Logs each approval once as a touch."""
     if not APPROVED.exists():
         return []
-    logged = set()
+    action = "approved finished reel (moved plan to approvals/approved/)"
+    logged = set()  # (action, reel_id) pairs, so other touches on the same reel don't hide this one
     if config.TOUCHES_LOG.exists():
         for line in config.TOUCHES_LOG.read_text(encoding="utf-8").splitlines():
             if line.strip():
-                logged.add(json.loads(line).get("note"))
+                t = json.loads(line)
+                logged.add((t.get("action"), t.get("note")))
 
     plans = []
     for path in sorted(APPROVED.glob("reel-*.md")):
         plan = read_plan(path)
-        if plan["reel_id"] not in logged:
-            logger.log_touch("human", "approved reel plan (moved to approvals/approved/)", plan["reel_id"])
+        if (action, plan["reel_id"]) not in logged:
+            logger.log_touch("human", action, plan["reel_id"])
         plans.append(plan)
     return plans
