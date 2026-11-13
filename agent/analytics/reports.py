@@ -1,1 +1,1 @@
-# joins it all by creative ID: what made money, what didn't
+# joins it all by reel + keyword: comments -> DMs -> signups -> sales

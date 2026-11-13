@@ -1,1 +1,0 @@
-# Manual CSV exports (TikTok fallback) if the API isn't approved

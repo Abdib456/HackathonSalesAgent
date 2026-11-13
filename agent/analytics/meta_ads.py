@@ -1,1 +1,0 @@
-# Instagram ad metrics via Meta Insights

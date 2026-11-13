@@ -1,1 +1,0 @@
-# Tavily: competitors, trending ad formats, hooks

@@ -1,1 +1,1 @@
-# writes a campaign plan + spend amount for approval
+# writes a reel plan + spend amount for approval
