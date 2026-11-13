@@ -27,6 +27,7 @@ TOUCHES_LOG = LOGS_DIR / "touches.jsonl"
 
 # Non-secret settings
 LANDING_PAGE_URL = os.getenv("LANDING_PAGE_URL", "")
+STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "")  # live-mode payment link
 
 
 def require(name: str) -> str:

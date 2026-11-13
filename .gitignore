@@ -8,3 +8,4 @@ footage/*
 *.m4a
 logs/outbound/*
 !logs/outbound/ReadMe.md
+data/unsubscribed.txt
