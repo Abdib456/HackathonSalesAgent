@@ -142,11 +142,11 @@ def step_emails(run, signups: list[dict]) -> None:
         return _skip(run, "emails", "RESEND_API_KEY / EMAIL_FROM not set")
     if os.getenv("APP_LIVE", "").lower() == "true":
         for s in signups:
-            email.send(s["email"], "launch", run)
+            email.send(s["email"], "launch", run, ref=s.get("ref") or "")
     if _configured("STRIPE_PAYMENT_LINK"):
         for s in signups:
             if s.get("free_edit_used") and not s.get("paid"):
-                email.send(s["email"], "payment_nudge", run)
+                email.send(s["email"], "payment_nudge", run, ref=s.get("ref") or "")
 
 
 def step_report(run, signups: list[dict]) -> None:
