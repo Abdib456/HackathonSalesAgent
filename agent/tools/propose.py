@@ -3,7 +3,9 @@
 # Turns a script from write_script into a human-readable plan in
 # approvals/pending/<reel-id>.md: what to film, what to say, where to drop
 # the files. The agent edits once footage arrives; the human approves the
-# finished reel by moving the file to approvals/approved/ (one touch).
+# finished reel by moving the file to approvals/approved/ (one touch), or
+# rejects the plan or reel by moving it to approvals/rejected/ (one touch,
+# optionally with a "Reason: ..." line). Rejected ideas are steered away from.
 # The machine-readable script is embedded at the bottom so the plan is one file.
 
 import json
@@ -15,13 +17,15 @@ from agent import config, logger
 APPROVALS = config.ROOT / "approvals"
 PENDING = APPROVALS / "pending"
 APPROVED = APPROVALS / "approved"
+REJECTED = APPROVALS / "rejected"
 FOOTAGE = config.ROOT / "footage"
 
 _JSON_BLOCK = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
+_REASON = re.compile(r"^\s*reason:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
 
 
 def _next_reel_id() -> str:
-    used = [int(m.group(1)) for d in (PENDING, APPROVED, FOOTAGE) if d.exists()
+    used = [int(m.group(1)) for d in (PENDING, APPROVED, REJECTED, FOOTAGE) if d.exists()
             for p in d.iterdir() if (m := re.match(r"reel-(\d+)", p.name))]
     return f"reel-{max(used, default=0) + 1:03d}"
 
@@ -86,11 +90,10 @@ def read_plan(path: Path) -> dict:
     return json.loads(match.group(1))
 
 
-def approved_plans() -> list[dict]:
-    """Finished reels the human has approved to publish. Logs each approval once as a touch."""
-    if not APPROVED.exists():
+def _plans_in(folder: Path, action: str) -> list[tuple[Path, dict]]:
+    """Plans the human moved into `folder`. Logs each move once as a touch."""
+    if not folder.exists():
         return []
-    action = "approved finished reel (moved plan to approvals/approved/)"
     logged = set()  # (action, reel_id) pairs, so other touches on the same reel don't hide this one
     if config.TOUCHES_LOG.exists():
         for line in config.TOUCHES_LOG.read_text(encoding="utf-8").splitlines():
@@ -99,9 +102,24 @@ def approved_plans() -> list[dict]:
                 logged.add((t.get("action"), t.get("note")))
 
     plans = []
-    for path in sorted(APPROVED.glob("reel-*.md")):
+    for path in sorted(folder.glob("reel-*.md")):
         plan = read_plan(path)
         if (action, plan["reel_id"]) not in logged:
             logger.log_touch("human", action, plan["reel_id"])
-        plans.append(plan)
+        plans.append((path, plan))
     return plans
+
+
+def approved_plans() -> list[dict]:
+    """Finished reels the human has approved to publish. Logs each approval once as a touch."""
+    return [plan for _, plan in _plans_in(APPROVED, "approved finished reel (moved plan to approvals/approved/)")]
+
+
+def rejected_ideas() -> list[dict]:
+    """Plans or reels the human rejected, with their optional "Reason: ..." line. Logs each once as a touch."""
+    ideas = []
+    for path, plan in _plans_in(REJECTED, "rejected plan or reel (moved plan to approvals/rejected/)"):
+        reason = _REASON.search(path.read_text(encoding="utf-8").split("<!-- machine-readable")[0])
+        ideas.append({"reel_id": plan["reel_id"], "idea": plan["script"]["idea"], "hook": plan["script"]["hook"],
+                      "reason": reason.group(1).strip() if reason else ""})
+    return ideas

@@ -26,6 +26,7 @@ from agent.tools.write_script import write_script
 LOOP_MINUTES = 15
 TARGET_WAITING_PLANS = 2   # keep this many plans ready for filming, no more
 MAX_NEW_PLANS_PER_DAY = 2  # limits Claude spend and how much the team has to film
+MAX_REJECTED_IN_BRIEF = 5  # most recent rejections passed to write_script
 
 # Used until there's sales data to learn from. Move to agent/prompts/ with the context commit.
 DEFAULT_ANGLES = [
@@ -74,6 +75,13 @@ def step_new_plans(run) -> None:
         # Rotate through all angles over time (made_today is only ever 0 or 1).
         made_ever = len(reports._run_events("plan_proposed"))
         brief = DEFAULT_ANGLES[made_ever % len(DEFAULT_ANGLES)]
+
+    # Steer away from what the human rejected (latest few, to keep the prompt short).
+    rejected = propose.rejected_ideas()[-MAX_REJECTED_IN_BRIEF:]
+    if rejected:
+        brief += "\n\nAvoid ideas like these, which we rejected:\n" + "\n".join(
+            f"- '{r['idea']}' (hook: '{r['hook']}')" + (f", reason: {r['reason']}" if r["reason"] else "")
+            for r in rejected)
     propose.propose(write_script(brief, run), run)
 
 

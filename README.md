@@ -23,6 +23,7 @@ Agent  writes plan           → approvals/pending/reel-001.md      (automatic)
 Human  films the shot list   → footage/reel-001/scene-01.mp4 ...  (touch)
 Agent  edits the reel        → creatives/reel-001.mp4             (automatic, next cycle)
 Human  watches it, moves the plan to approvals/approved/           (touch)
+       or rejects it, moves the plan to approvals/rejected/         (touch, optional 'Reason: ...' line)
 Agent  publishes, then DMs everyone who comments the keyword      (automatic)
 ```
 
@@ -78,7 +79,7 @@ python -m agent.main     # one cycle; check logs/runs/ to see what it did
 | Folder | What's in it | In git? |
 |---|---|---|
 | `agent/` | The code: `main.py`, `tools/`, `analytics/`, `prompts/` | yes |
-| `approvals/pending/`, `approved/` | Reel plans; moving one to `approved/` = go-ahead to publish | yes |
+| `approvals/pending/`, `approved/`, `rejected/` | Reel plans; moving one to `approved/` = go-ahead to publish, to `rejected/` = never publish, and new plans avoid it | yes |
 | `footage/` | Raw clips, photos, voiceovers per reel | no (too large) |
 | `creatives/` | Finished reels | videos no, index yes |
 | `logs/runs/` | Full transcript of every cycle | yes |
