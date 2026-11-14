@@ -43,9 +43,9 @@ def _ideas() -> dict:
     ideas = {}
     for folder in (propose.PENDING, propose.APPROVED):
         for p in folder.glob("reel-*.md") if folder.exists() else []:
-            plan = propose.read_plan(p)
-            ideas[plan["reel_id"]] = {"idea": plan["script"]["idea"], "hook": plan["script"]["hook"],
-                                      "keyword": plan["script"]["keyword"]}
+            for v in propose.versions(propose.read_plan(p)):  # each hook version is its own row
+                ideas[v["reel_id"]] = {"idea": v["script"]["idea"], "hook": v["script"]["hook"],
+                                       "keyword": v["script"]["keyword"]}
     return ideas
 
 
@@ -98,11 +98,11 @@ def write_report(stripe_summary: dict, rows: dict) -> str:
         f"- Spend: £{spend:.2f} of £{config.BUDGET_CAP_GBP:.0f}",
         f"- **Profit: £{profit:.2f}**",
         f"- Human touches logged: {touches_count()}", "",
-        "| Reel | Idea | Published | DMs | Signups | Free edits | Sales | £ |",
-        "|---|---|---|---|---|---|---|---|",
+        "| Reel | Idea | Hook | Published | DMs | Signups | Free edits | Sales | £ |",
+        "|---|---|---|---|---|---|---|---|---|",
     ]
     for reel_id, r in sorted(rows.items()):
-        lines.append(f"| {reel_id} | {r.get('idea', '')} | {'yes' if r['published'] else 'no'} | {r['dms']} "
+        lines.append(f"| {reel_id} | {r.get('idea', '')} | {r.get('hook', '')} | {'yes' if r['published'] else 'no'} | {r['dms']} "
                      f"| {r['signups']} | {r['free_edits']} | {r['sales']} | {r['gbp']:.2f} |")
     text = "\n".join(lines) + "\n"
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)

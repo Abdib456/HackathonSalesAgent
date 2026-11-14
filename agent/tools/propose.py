@@ -7,7 +7,13 @@
 # rejects the plan or reel by moving it to approvals/rejected/ (one touch,
 # optionally with a "Reason: ..." line). Rejected ideas are steered away from.
 # The machine-readable script is embedded at the bottom so the plan is one file.
+#
+# Hook versions: one plan + one filming session -> up to 3 reels from the same
+# footage, each opening with a different top-scoring hook (reel-001, reel-001b,
+# reel-001c). One approval covers them all; they publish a day apart and are
+# tracked separately, so the reports show which hook actually got DMs.
 
+import copy
 import json
 import re
 from pathlib import Path
@@ -21,6 +27,9 @@ REJECTED = APPROVALS / "rejected"
 FOOTAGE = config.ROOT / "footage"
 
 _JSON_BLOCK = re.compile(r"```json\n(.*?)\n```", re.DOTALL)
+HOOK_VERSIONS = 3        # reels per plan, including the main one
+MIN_VERSION_SCORE = 7    # don't spend a post on a weak hook
+
 _REASON = re.compile(r"^\s*reason:\s*(.+)$", re.IGNORECASE | re.MULTILINE)
 
 
@@ -67,9 +76,11 @@ e.g. `scene-01.mp4`, `scene-02.jpg`. Photos are fine for static shots.
 
 ## Next steps
 1. Drop the files into `footage/{reel_id}/`. The agent edits the reel automatically
-   on its next run and saves it as `creatives/{reel_id}.mp4`.
-2. Watch the finished reel. If it's good, move this file to `approvals/approved/`.
-   That is your go-ahead to publish and is logged as a touch.
+   on its next run and saves it as `creatives/{reel_id}.mp4`, plus a version for each
+   other hook scoring {MIN_VERSION_SCORE}+ ({reel_id}b, {reel_id}c: same footage, different opening text).
+2. Watch them. Delete any version you don't want from `creatives/`. If they're good,
+   move this file to `approvals/approved/`. That is your go-ahead to publish (one a day)
+   and is logged as a touch.
 
 <!-- machine-readable plan, don't edit below -->
 ```json
@@ -96,6 +107,28 @@ def read_plan(path: Path) -> dict:
     if not match:
         raise ValueError(f"No plan data found in {path.name}")
     return json.loads(match.group(1))
+
+
+def base_id(reel_id: str) -> str:
+    """'reel-001b' -> 'reel-001'."""
+    return re.match(r"reel-\d+", reel_id).group(0)
+
+
+def versions(plan: dict) -> list[dict]:
+    """The plan as up to HOOK_VERSIONS reels: the main one, then one per other strong hook."""
+    out, seen = [plan], {plan["script"]["hook"].strip().lower()}
+    for h in plan["script"].get("hooks", [])[1:]:
+        text = h["text"].strip()
+        if len(out) >= HOOK_VERSIONS or h["score"] < MIN_VERSION_SCORE or text.lower() in seen:
+            continue
+        seen.add(text.lower())
+        v = copy.deepcopy(plan)
+        v["reel_id"] = f"{plan['reel_id']}{'abcdefgh'[len(out)]}"
+        v["version_of"] = plan["reel_id"]
+        v["script"]["hook"] = text
+        v["script"]["scenes"][0]["on_screen_text"] = text
+        out.append(v)
+    return out
 
 
 def _plans_in(folder: Path, action: str) -> list[tuple[Path, dict]]:

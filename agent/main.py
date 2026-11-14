@@ -28,6 +28,7 @@ TARGET_WAITING_PLANS = 2   # keep this many plans ready for filming, no more
 MAX_NEW_PLANS_PER_DAY = 2  # limits Claude spend and how much the team has to film
 MAX_REJECTED_IN_BRIEF = 5  # most recent rejections passed to write_script
 MAX_RESEARCH_CHARS = 4000  # cap on the research brief passed to write_script
+VERSION_GAP_HOURS = 24     # hook versions of the same footage go out a day apart
 
 # Used until there's sales data to learn from. Move to agent/prompts/ with the context commit.
 DEFAULT_ANGLES = [
@@ -108,15 +109,23 @@ def step_make_reels(run) -> None:
 
 
 def step_publish(run) -> None:
-    """Publish reels the human approved."""
+    """Publish reels the human approved: the main reel first, then one hook version a day."""
     publish = _optional("tools.instagram", "publish")
     if not publish:
         return _skip(run, "publish", "instagram.publish not written yet")
-    published = {e["reel_id"] for e in reports._run_events("reel_published")}
+    events = reports._run_events("reel_published")
+    published = {e["reel_id"] for e in events}
+    now = datetime.now(timezone.utc)
     for plan in propose.approved_plans():  # also logs each approval as a touch
-        video = make_reel.CREATIVES / f"{plan['reel_id']}.mp4"
-        if plan["reel_id"] not in published and video.exists():
-            publish(plan, video, run)
+        last = max((datetime.fromisoformat(e["timestamp"]) for e in events
+                    if propose.base_id(e["reel_id"]) == plan["reel_id"]), default=None)
+        if last and (now - last).total_seconds() < VERSION_GAP_HOURS * 3600:
+            continue  # a version of this footage went out recently
+        for v in propose.versions(plan):  # versions you deleted from creatives/ are skipped
+            video = make_reel.CREATIVES / f"{v['reel_id']}.mp4"
+            if v["reel_id"] not in published and video.exists():
+                publish(v, video, run)
+                break  # at most one post per plan per cycle
 
 
 def step_dms(run) -> None:

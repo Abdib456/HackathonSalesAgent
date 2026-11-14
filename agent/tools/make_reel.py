@@ -89,7 +89,12 @@ def _scene(src: Path, text: str, dur: float, out: Path, tmp: Path, font: str) ->
 
 
 def make_reel(plan: dict, run: Path) -> Path | None:
-    """Edit the reel. Returns the output path, or None if footage is still missing."""
+    """Edit the reel and its hook versions (same footage, different scene-1 text).
+
+    Returns the main reel's path, or None if footage is still missing.
+    """
+    from agent.tools.propose import versions  # propose imports nothing from here; avoids a cycle
+
     reel_id = plan["reel_id"]
     missing = missing_footage(plan)
     if missing:
@@ -101,31 +106,35 @@ def make_reel(plan: dict, run: Path) -> Path | None:
     scenes = plan["script"]["scenes"]
     total = sum(_duration(s["seconds"]) for s in scenes)
     CREATIVES.mkdir(parents=True, exist_ok=True)
-    out = CREATIVES / f"{reel_id}.mp4"
+    voiceover = _find(folder, "voiceover", AUDIO_EXT)
+    audio = ["-i", voiceover] if voiceover else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
+    tag = (f"drawtext=fontfile='{_esc(font)}':text='{AI_TAG}':fontsize=34:fontcolor=white@0.85:"
+           f"box=1:boxcolor=black@0.4:boxborderw=10:x=w-text_w-40:y=h-text_h-160")
 
     with tempfile.TemporaryDirectory() as t:
         tmp = Path(t)
-        parts = []
-        for i, s in enumerate(scenes, start=1):
-            src = _find(folder, f"scene-{i:02d}", VIDEO_EXT | IMAGE_EXT)
+        # Scenes 2+ are the same in every version, so render them once
+        rest = []
+        for i, s in enumerate(scenes[1:], start=2):
             part = tmp / f"part-{i:02d}.mp4"
-            _scene(src, s["on_screen_text"], _duration(s["seconds"]), part, tmp, font)
-            parts.append(part)
+            _scene(_find(folder, f"scene-{i:02d}", VIDEO_EXT | IMAGE_EXT), s["on_screen_text"],
+                   _duration(s["seconds"]), part, tmp, font)
+            rest.append(part)
 
-        concat_list = tmp / "parts.txt"
-        concat_list.write_text("".join(f"file '{p}'\n" for p in parts), encoding="utf-8")
+        for v in versions(plan):
+            out = CREATIVES / f"{v['reel_id']}.mp4"
+            first = tmp / f"first-{v['reel_id']}.mp4"
+            _scene(_find(folder, "scene-01", VIDEO_EXT | IMAGE_EXT), v["script"]["scenes"][0]["on_screen_text"],
+                   _duration(scenes[0]["seconds"]), first, tmp, font)
+            concat_list = tmp / f"parts-{v['reel_id']}.txt"
+            concat_list.write_text("".join(f"file '{p}'\n" for p in [first, *rest]), encoding="utf-8")
+            _ffmpeg(["-f", "concat", "-safe", "0", "-i", concat_list, *audio,
+                     "-map", "0:v", "-map", "1:a", "-vf", tag, "-af", "apad", "-t", total,
+                     "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+                     "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out])
+            logger.log_event(run, "reel_made", reel_id=v["reel_id"], version_of=reel_id, hook=v["script"]["hook"],
+                             path=str(out.relative_to(config.ROOT)), seconds=total, voiceover=bool(voiceover))
 
-        voiceover = _find(folder, "voiceover", AUDIO_EXT)
-        audio = ["-i", voiceover] if voiceover else ["-f", "lavfi", "-i", "anullsrc=r=44100:cl=stereo"]
-        tag = (f"drawtext=fontfile='{_esc(font)}':text='{AI_TAG}':fontsize=34:fontcolor=white@0.85:"
-               f"box=1:boxcolor=black@0.4:boxborderw=10:x=w-text_w-40:y=h-text_h-160")
-        _ffmpeg(["-f", "concat", "-safe", "0", "-i", concat_list, *audio,
-                 "-map", "0:v", "-map", "1:a", "-vf", tag, "-af", "apad", "-t", total,
-                 "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
-                 "-c:a", "aac", "-b:a", "128k", "-movflags", "+faststart", out])
-
-    logger.log_event(run, "reel_made", reel_id=reel_id, path=str(out.relative_to(config.ROOT)),
-                     seconds=total, voiceover=bool(voiceover))
-    # Filming/recording is a human step the rules count as a touch
+    # Filming/recording is a human step the rules count as a touch (once, however many versions)
     logger.log_touch("human", "filmed footage" + (" + recorded voiceover" if voiceover else ""), reel_id)
-    return out
+    return CREATIVES / f"{reel_id}.mp4"

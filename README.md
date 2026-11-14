@@ -21,10 +21,10 @@ Every £ spent is checked against a £100 cap and logged. Every human step is lo
 ```
 Agent  writes plan           → approvals/pending/reel-001.md      (automatic)
 Human  films the shot list   → footage/reel-001/scene-01.mp4 ...  (touch)
-Agent  edits the reel        → creatives/reel-001.mp4             (automatic, next cycle)
+Agent  edits the reel        → creatives/reel-001.mp4, plus hook versions reel-001b/c (automatic, next cycle)
 Human  watches it, moves the plan to approvals/approved/           (touch)
        or rejects it, moves the plan to approvals/rejected/         (touch, optional 'Reason: ...' line)
-Agent  publishes, then DMs everyone who comments the keyword      (automatic)
+Agent  publishes (one version a day), then DMs everyone who comments the keyword (automatic)
 ```
 
 ## The cycle
