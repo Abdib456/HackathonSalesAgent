@@ -68,3 +68,14 @@ def save_outbound(channel: str, to: str, content: str, **meta) -> Path:
     record = {"timestamp": now(), "channel": channel, "to": to, "content": content, **meta}
     path.write_text(_scrub(json.dumps(record, ensure_ascii=False, indent=2, default=str)), encoding="utf-8")
     return path
+
+
+if __name__ == "__main__":
+    # Log a hand touch from the terminal, e.g.
+    #   python -m agent.logger touch reel-001 "filmed and edited in CapCut"
+    import sys
+
+    if len(sys.argv) != 4 or sys.argv[1] != "touch":
+        sys.exit('usage: python -m agent.logger touch <reel-id or -> "what you did"')
+    log_touch("human", sys.argv[3], "" if sys.argv[2] == "-" else sys.argv[2])
+    print(f"Logged touch: {sys.argv[3]} ({sys.argv[2]}). Mirror it with /touch in Discord.")

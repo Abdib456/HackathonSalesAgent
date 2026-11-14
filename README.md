@@ -1,60 +1,60 @@
 # HackathonSalesAgent
 
-An AI sales agent for our photography + fashion try-on app, built for the
-Shipyard "Make Me Money" hackathon. It brings strangers in from Instagram and
-moves them toward a paid credit pack, with as few human touches as possible.
+An AI marketing agent for our photography + fashion try-on app, built for the
+Shipyard "Make Me Money" hackathon. It does the research, scripting and reporting
+behind our Instagram reels; we film, edit and post them by hand. Strangers buy in
+our web app through a live Stripe payment link.
 
-## What it does
+## What the agent does
 
-1. **Writes reel scripts** with Claude: hook, scenes, on-screen text, voiceover, caption, comment keyword.
-2. **Turns each script into a shot list** in `approvals/pending/` for the team to film.
-3. **Edits the reel** (ffmpeg, 9:16, captions, "AI-assisted" tag) once the footage is in `footage/reel-NNN/`.
-4. **Publishes approved reels** to Instagram *(instagram.py, in progress)*.
-5. **DMs the landing page link** to people who comment the keyword *(instagram.py, in progress)*.
-6. **Emails the waitlist** when the app launches, and sends the payment link after a free try-on edit.
-7. **Reports daily**: profit (net Stripe sales − spend), touches, and which reel made money.
+1. **Researches** what's working in fashion / try-on reels this week (Tavily search + a Claude summary, with sources).
+2. **Writes reel plans** with Claude: idea, 5 hooks scored 1-10, shot list, voiceover, caption with an AI note, "link in bio" call to action.
+3. **Learns**: new plans lean towards reels that made money and away from plans we rejected.
+4. **Reports**: profit (live Stripe sales − refunds/chargebacks − spend), touches, and sales per reel.
 
-Every £ spent is checked against a £100 cap and logged. Every human step is logged as a touch.
+Every £ spent is checked against the £100 cap and logged. Every human step is logged as a touch.
 
-## How a reel goes from idea to live
+## The flow, start to finish
 
+| # | Step | Who | Touch? |
+|---|------|-----|--------|
+| 1 | Daily research brief → `data/research/YYYY-MM-DD.md` | Agent | — |
+| 2 | Reel plan → `approvals/pending/reel-NNN.md` (keeps 2 ready, max 2 new a day) | Agent | — |
+| 3 | Read the plan. Weak? Move it to `approvals/rejected/` (optional `Reason: ...` line) | Human | yes (logged automatically) |
+| 4 | Film and edit it in Edits / CapCut, with an "AI-assisted" label on screen | Human | yes (log it, see below) |
+| 5 | Post on Instagram with the plan's caption; set the bio link the plan gives you | Human | yes |
+| 6 | Move the plan to `approvals/approved/`: marks it posted and frees a slot for the next plan | Human | logged automatically as the posting touch |
+| 7 | A stranger taps the bio link, signs up, uses the free edit, pays in the app | Customer + app | — |
+| 8 | Report → `logs/reports/YYYY-MM-DD.md`, refreshed every cycle | Agent | — |
+
+About 3 touches per posted reel. Log the ones the agent can't see (filming, editing) with:
+
+```bash
+python -m agent.logger touch reel-001 "filmed and edited in CapCut"
 ```
-Agent  writes plan           → approvals/pending/reel-001.md      (automatic)
-Human  films the shot list   → footage/reel-001/scene-01.mp4 ...  (touch)
-Agent  edits the reel        → creatives/reel-001.mp4, plus hook versions reel-001b/c (automatic, next cycle)
-Human  watches it, moves the plan to approvals/approved/           (touch)
-       or rejects it, moves the plan to approvals/rejected/         (touch, optional 'Reason: ...' line)
-Agent  publishes (one version a day), then DMs everyone who comments the keyword (automatic)
-```
+
+and mirror every touch with `/touch` (and every spend with `/spend`) in Discord.
+
+**Which reel sold?** The plan's bio link is `LANDING_PAGE_URL?ref=reel-NNN`. If the app
+passes that `ref` to Stripe as `client_reference_id`, the report credits each sale to
+its reel and the agent learns from it. If not, sales still count, but show as "unknown".
 
 ## The cycle
 
-`python -m agent.main` runs **one cycle** and exits. A cycle checks where everything
-is up to and does whatever is ready: a research brief (once a day), new plans (max 2/day), edits, publishing,
-DMs, emails, report. Anything waiting on a human or not set up yet is skipped
-and logged, never fatal.
+`python -m agent.main` runs **one cycle** and exits; `--loop` repeats it **every 15
+minutes** until Ctrl+C. Stopping is safe: all state is in files.
 
-`python -m agent.main --loop` repeats the cycle **every 15 minutes until you
-press Ctrl+C**. Stopping is safe: all state is in files, so it carries on where
-it left off when restarted.
+Each cycle: log plan moves as touches → research (once a day) → new plans (if fewer
+than 2 waiting) → report. Anything not set up yet is skipped and logged, never fatal.
 
-Cost: most cycles cost £0. Only new scripts call Claude (~4p each, max 2/day),
-plus one research summary a day (~5p; the 8 Tavily searches use partner credits).
+Cost: most cycles cost £0. Plans call Claude (~4p each, max 2/day), plus one research
+summary a day (~5p). The 8 daily Tavily searches use partner credits.
 
-## Where it runs (decision)
+## Where it runs
 
-The agent keeps its state in files (footage, approvals, logs, spend), so it must
-run **on the same machine where we drop footage and move approvals**.
-
-- **Agent: runs on a laptop** with `caffeinate -i python -m agent.main --loop`
-  (macOS; keeps it awake). Free, and all logs stay in one place to commit.
-- **Replit Pro: used only to serve `creatives/` at a public URL**, because
-  Instagram's API fetches videos from a link rather than taking an upload.
-- **Not used: Replit Scheduled Deployments / Reserved VMs for the agent.** They
-  run a separate copy of the code and (to be confirmed in Replit's docs) don't
-  keep file changes, so footage, approvals and logs wouldn't reach them. Any
-  paid hosting would also count against the £100 budget.
-- Revisit if Replit confirms persistent files on a Reserved VM covered by Pro credits.
+On a Mac: `caffeinate -i python -m agent.main --loop` (keeps it awake). The agent's
+state is files you move by hand (plans) and logs we commit, so it runs where we work.
+Replit isn't needed for manual posting.
 
 ## Setup
 
@@ -64,31 +64,40 @@ cp .env.example .env     # then fill in the keys (never commit .env)
 python -m agent.main     # one cycle; check logs/runs/ to see what it did
 ```
 
-| Key | What for | Where to get it |
+| Key | What for | Needed? |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | Writing scripts | platform.claude.com → API Keys (prepaid credits) |
-| `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_ACCOUNT_ID` | Publishing, comments, DMs | Meta developer app → Instagram → API setup with Instagram login |
-| `TAVILY_API_KEY` | Daily research brief (8 searches/day) | Tavily dashboard (partner credits; keep pay-as-you-go off) |
-| `STRIPE_READ_KEY` | Counting sales | Stripe → Developers → restricted key, Read on Checkout Sessions, Refunds, Disputes |
-| `STRIPE_PAYMENT_LINK` | Payment nudge emails | Stripe live-mode payment link |
-| `LANDING_PAGE_URL` | DMs and launch email | Teammate's landing page |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Sending email | resend.com (free tier), domain verified |
-| `APP_LIVE` | Set to `true` to send the launch email | — |
-| `FONT_PATH` | Only if no font is found for reel text | Any `.ttf` file |
+| `ANTHROPIC_API_KEY` | Plans and the research summary | **yes** |
+| `TAVILY_API_KEY` | Daily research brief | **yes** (partner credits; keep pay-as-you-go off) |
+| `STRIPE_READ_KEY` | The profit report. Restricted `rk_live_` key, Core = Read, same Stripe account as Shipyard | **yes** |
+| `LANDING_PAGE_URL` | The tracked bio link in each plan | recommended |
+| `POSTING` | `manual` (default) or `api` | — |
+
+The app's context goes in `agent/prompts/system.md` and `brand.md` (the product,
+audience, tone). Until it's filled in, plans are generic.
 
 ## Folders
 
 | Folder | What's in it | In git? |
 |---|---|---|
 | `agent/` | The code: `main.py`, `tools/`, `analytics/`, `prompts/` | yes |
-| `approvals/pending/`, `approved/`, `rejected/` | Reel plans; moving one to `approved/` = go-ahead to publish, to `rejected/` = never publish, and new plans avoid it | yes |
-| `footage/` | Raw clips, photos, voiceovers per reel | no (too large) |
-| `creatives/` | Finished reels | videos no, index yes |
+| `approvals/pending/` | Plans waiting to be filmed | yes |
+| `approvals/approved/` | Posted reels (moved here by us) | yes |
+| `approvals/rejected/` | Plans we said no to; new plans avoid them | yes |
 | `data/research/` | Daily research brief with source links (AI-generated) | yes |
 | `logs/runs/` | Full transcript of every cycle | yes |
 | `logs/spend.jsonl`, `logs/touches.jsonl` | Every £ spent, every human step | yes |
-| `logs/reports/` | Daily profit + per-reel funnel (counts only) | yes |
-| `logs/outbound/` | Copy of every DM and email sent | no (customer data, kept locally for audit) |
+| `logs/reports/` | Daily profit + per-reel sales (counts only) | yes |
+
+## Optional: agent edits, publishes and DMs (`POSTING=api`)
+
+Built but dormant. With `POSTING=api`, plans say "comment KEYWORD", the team drops
+footage into `footage/reel-NNN/`, the agent edits it with ffmpeg (9:16, captions,
+"AI-assisted" tag, up to 3 hook versions), publishes one a day after approval, DMs
+everyone who comments the keyword, and emails signups. It needs `agent/tools/instagram.py`
+(not written), `agent/analytics/signups.py` (not written), a Meta app with the
+`instagram_business_*` permissions, a public URL for `creatives/` (Replit), and the
+`INSTAGRAM_*`, `RESEND_API_KEY`, `EMAIL_FROM`, `STRIPE_PAYMENT_LINK` and `APP_LIVE` keys.
+Code: `tools/make_reel.py`, `tools/email.py`; folders `footage/`, `creatives/`, `logs/outbound/`.
 
 ## Hackathon rules
 

@@ -1,11 +1,15 @@
 # entry point: runs one full cycle
 #
-#   python -m agent.main          one cycle, then exit (Replit Scheduled Deployment)
-#   python -m agent.main --loop   a cycle every 15 minutes, forever (Reserved VM / laptop)
+#   python -m agent.main          one cycle, then exit
+#   python -m agent.main --loop   a cycle every 15 minutes, forever (on the laptop)
 #
 # Each cycle looks at where everything is up to and does whatever is ready.
-# Anything waiting on a human (footage, approval) or not set up yet (missing
-# keys, instagram.py / signups.py not written) is skipped and logged, never fatal.
+# Anything waiting on a human or not set up yet (missing keys, instagram.py /
+# signups.py not written) is skipped and logged, never fatal.
+#
+# POSTING=manual (default, see config.py): research, plans and the report run;
+# humans film, edit and post, and moving a plan to approved/ marks it posted.
+# make_reels / publish / dms only run with POSTING=api.
 #
 # Contract for the parts still to be written:
 #   agent/tools/instagram.py   publish(plan, video_path, run) -> media_id   (logs "reel_published")
@@ -66,6 +70,22 @@ def step_research(run) -> None:
     research.research(run)
 
 
+def step_approvals(run) -> None:
+    """Log plan moves as touches (approved/ = posted or go-ahead, rejected/ = no).
+
+    Runs every cycle, so touches are logged even when no other step needs the plans.
+    With manual posting, an approved plan *is* a posted reel, so it's recorded as
+    published here; the report and learning loop then treat it like any other reel.
+    """
+    approved = propose.approved_plans()
+    propose.rejected_ideas()
+    if config.MANUAL:
+        published = {e["reel_id"] for e in reports._run_events("reel_published")}
+        for plan in approved:
+            if plan["reel_id"] not in published:
+                logger.log_event(run, "reel_published", reel_id=plan["reel_id"], manual=True)
+
+
 def step_new_plans(run) -> None:
     """Keep a couple of reel plans ready for the team to film."""
     if not _configured("ANTHROPIC_API_KEY"):
@@ -77,9 +97,17 @@ def step_new_plans(run) -> None:
     if len(waiting) >= TARGET_WAITING_PLANS or made_today >= MAX_NEW_PLANS_PER_DAY:
         return _skip(run, "new_plans", f"{len(waiting)} waiting, {made_today} made today")
 
-    # Only learn from a reel people actually responded to; a published reel with
-    # 0 DMs isn't "best", and copying it would lock every future plan onto it.
-    best = [r for r in reports.top_reels(reports.by_reel([], []), n=1) if r["gbp"] > 0 or r["dms"] > 0]
+    # Learn from sales (Stripe, free read, at most twice a day) and DMs. Only from a
+    # reel people actually responded to: a posted reel with 0 sales and 0 DMs isn't
+    # "best", and copying it would lock every future plan onto it.
+    sales = []
+    if _configured("STRIPE_READ_KEY"):
+        try:
+            from agent.analytics import stripe_sales
+            sales = stripe_sales.sales()
+        except Exception as e:  # a Stripe hiccup shouldn't stop the plan being written
+            logger.log_event(run, "sales_unavailable", step="new_plans", error=str(e))
+    best = [r for r in reports.top_reels(reports.by_reel(sales, []), n=1) if r["gbp"] > 0 or r["dms"] > 0]
     if best and best[0].get("idea"):
         brief = f"A fresh variation on our best reel so far: '{best[0]['idea']}' (hook: '{best[0]['hook']}')"
     else:
@@ -102,6 +130,8 @@ def step_new_plans(run) -> None:
 
 def step_make_reels(run) -> None:
     """Edit any plan whose footage has arrived (pending, or approved before it was edited)."""
+    if config.MANUAL:
+        return _skip(run, "make_reels", "POSTING=manual: the team edits by hand")
     plans = [p for d in (propose.PENDING, propose.APPROVED) if d.exists() for p in d.glob("reel-*.md")]
     for path in sorted(plans):
         if not (make_reel.CREATIVES / f"{path.stem}.mp4").exists():
@@ -110,13 +140,15 @@ def step_make_reels(run) -> None:
 
 def step_publish(run) -> None:
     """Publish reels the human approved: the main reel first, then one hook version a day."""
+    if config.MANUAL:
+        return _skip(run, "publish", "POSTING=manual: the team posts by hand")
     publish = _optional("tools.instagram", "publish")
     if not publish:
         return _skip(run, "publish", "instagram.publish not written yet")
     events = reports._run_events("reel_published")
     published = {e["reel_id"] for e in events}
     now = datetime.now(timezone.utc)
-    for plan in propose.approved_plans():  # also logs each approval as a touch
+    for plan in propose.approved_plans():
         last = max((datetime.fromisoformat(e["timestamp"]) for e in events
                     if propose.base_id(e["reel_id"]) == plan["reel_id"]), default=None)
         if last and (now - last).total_seconds() < VERSION_GAP_HOURS * 3600:
@@ -129,6 +161,8 @@ def step_publish(run) -> None:
 
 
 def step_dms(run) -> None:
+    if config.MANUAL:
+        return _skip(run, "dms", "POSTING=manual: reels say 'link in bio', no DMs")
     reply = _optional("tools.instagram", "reply_to_keyword_comments")
     if not reply:
         return _skip(run, "dms", "instagram.reply_to_keyword_comments not written yet")
@@ -162,6 +196,7 @@ def cycle() -> None:
     fetch = _optional("analytics.signups", "fetch")
     signups = []
     steps = [
+        ("approvals", lambda: step_approvals(run)),
         ("research", lambda: step_research(run)),
         ("new_plans", lambda: step_new_plans(run)),
         ("make_reels", lambda: step_make_reels(run)),

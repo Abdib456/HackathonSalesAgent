@@ -29,6 +29,12 @@ OUTBOUND_DIR = LOGS_DIR / "outbound"
 SPEND_LOG = LOGS_DIR / "spend.jsonl"
 TOUCHES_LOG = LOGS_DIR / "touches.jsonl"
 
+# How reels get to Instagram:
+#   manual (default)  humans film, edit (Edits/CapCut) and post by hand; reels say "link in bio"
+#   api               the agent edits (ffmpeg), publishes and DMs keyword commenters (needs instagram.py)
+POSTING = os.getenv("POSTING", "manual").strip().lower()
+MANUAL = POSTING != "api"
+
 # Non-secret settings
 LANDING_PAGE_URL = os.getenv("LANDING_PAGE_URL", "")
 STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "")  # live-mode payment link
