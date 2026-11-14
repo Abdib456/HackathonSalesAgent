@@ -65,11 +65,15 @@ def step_new_plans(run) -> None:
     if len(waiting) >= TARGET_WAITING_PLANS or made_today >= MAX_NEW_PLANS_PER_DAY:
         return _skip(run, "new_plans", f"{len(waiting)} waiting, {made_today} made today")
 
-    best = reports.top_reels(reports.by_reel([], []), n=1)
+    # Only learn from a reel people actually responded to; a published reel with
+    # 0 DMs isn't "best", and copying it would lock every future plan onto it.
+    best = [r for r in reports.top_reels(reports.by_reel([], []), n=1) if r["gbp"] > 0 or r["dms"] > 0]
     if best and best[0].get("idea"):
         brief = f"A fresh variation on our best reel so far: '{best[0]['idea']}' (hook: '{best[0]['hook']}')"
     else:
-        brief = DEFAULT_ANGLES[made_today % len(DEFAULT_ANGLES)]
+        # Rotate through all angles over time (made_today is only ever 0 or 1).
+        made_ever = len(reports._run_events("plan_proposed"))
+        brief = DEFAULT_ANGLES[made_ever % len(DEFAULT_ANGLES)]
     propose.propose(write_script(brief, run), run)
 
 
