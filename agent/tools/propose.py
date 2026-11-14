@@ -36,12 +36,20 @@ def _render(reel_id: str, script: dict, paid_spend_gbp: float) -> str:
         for i, s in enumerate(script["scenes"], start=1)
     )
     voiceover = " ".join(s["voiceover"] for s in script["scenes"] if s["voiceover"])
+    cell = lambda t: str(t).replace("|", "\\|")  # a | in the text would break the table
+    hooks = "\n".join(f"| {h['score']}/10 | {cell(h['text'])} | {cell(h['style'])} | {cell(h['reason'])} |"
+                      for h in script.get("hooks", []))
     plan = {"reel_id": reel_id, "paid_spend_gbp": paid_spend_gbp, "script": script}
     return f"""# {reel_id}: {script['idea']}
 
 **Hook (first 2s):** {script['hook']}
 **Comment keyword:** {script['keyword']}
 **Paid spend requested:** £{paid_spend_gbp:.2f}
+
+## Hooks considered (Claude's scores; the top one is used)
+| Score | Hook | Style | Why |
+|-------|------|-------|-----|
+{hooks}
 
 ## Shot list
 Film each scene and drop the file into `footage/{reel_id}/` named by scene number,
