@@ -20,13 +20,14 @@ from datetime import datetime, timezone
 
 from agent import budget, config, logger
 from agent.analytics import reports
-from agent.tools import email, make_reel, propose
+from agent.tools import email, make_reel, propose, research
 from agent.tools.write_script import write_script
 
 LOOP_MINUTES = 15
 TARGET_WAITING_PLANS = 2   # keep this many plans ready for filming, no more
 MAX_NEW_PLANS_PER_DAY = 2  # limits Claude spend and how much the team has to film
 MAX_REJECTED_IN_BRIEF = 5  # most recent rejections passed to write_script
+MAX_RESEARCH_CHARS = 4000  # cap on the research brief passed to write_script
 
 # Used until there's sales data to learn from. Move to agent/prompts/ with the context commit.
 DEFAULT_ANGLES = [
@@ -55,6 +56,15 @@ def _skip(run, step: str, reason: str) -> None:
 
 # --- Steps -----------------------------------------------------------------
 
+def step_research(run) -> None:
+    """Once a day: Tavily searches + Claude summary -> data/research/<date>.md."""
+    if not _configured("TAVILY_API_KEY", "ANTHROPIC_API_KEY"):
+        return _skip(run, "research", "TAVILY_API_KEY / ANTHROPIC_API_KEY not set")
+    if research.done_today():
+        return  # normal for 95 of 96 cycles a day, not worth a log line
+    research.research(run)
+
+
 def step_new_plans(run) -> None:
     """Keep a couple of reel plans ready for the team to film."""
     if not _configured("ANTHROPIC_API_KEY"):
@@ -82,6 +92,10 @@ def step_new_plans(run) -> None:
         brief += "\n\nAvoid ideas like these, which we rejected:\n" + "\n".join(
             f"- '{r['idea']}' (hook: '{r['hook']}')" + (f", reason: {r['reason']}" if r["reason"] else "")
             for r in rejected)
+
+    findings = research.latest_brief()[:MAX_RESEARCH_CHARS]
+    if findings:
+        brief += "\n\nThis week's research (use it if it helps, don't copy it):\n" + findings
     propose.propose(write_script(brief, run), run)
 
 
@@ -139,6 +153,7 @@ def cycle() -> None:
     fetch = _optional("analytics.signups", "fetch")
     signups = []
     steps = [
+        ("research", lambda: step_research(run)),
         ("new_plans", lambda: step_new_plans(run)),
         ("make_reels", lambda: step_make_reels(run)),
         ("publish", lambda: step_publish(run)),

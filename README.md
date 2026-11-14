@@ -30,7 +30,7 @@ Agent  publishes, then DMs everyone who comments the keyword      (automatic)
 ## The cycle
 
 `python -m agent.main` runs **one cycle** and exits. A cycle checks where everything
-is up to and does whatever is ready: new plans (max 2/day), edits, publishing,
+is up to and does whatever is ready: a research brief (once a day), new plans (max 2/day), edits, publishing,
 DMs, emails, report. Anything waiting on a human or not set up yet is skipped
 and logged, never fatal.
 
@@ -38,7 +38,8 @@ and logged, never fatal.
 press Ctrl+C**. Stopping is safe: all state is in files, so it carries on where
 it left off when restarted.
 
-Cost: most cycles cost £0. Only new scripts call Claude (~4p each, max 2/day).
+Cost: most cycles cost £0. Only new scripts call Claude (~4p each, max 2/day),
+plus one research summary a day (~5p; the 8 Tavily searches use partner credits).
 
 ## Where it runs (decision)
 
@@ -67,6 +68,7 @@ python -m agent.main     # one cycle; check logs/runs/ to see what it did
 |---|---|---|
 | `ANTHROPIC_API_KEY` | Writing scripts | platform.claude.com → API Keys (prepaid credits) |
 | `INSTAGRAM_ACCESS_TOKEN`, `INSTAGRAM_ACCOUNT_ID` | Publishing, comments, DMs | Meta developer app → Instagram → API setup with Instagram login |
+| `TAVILY_API_KEY` | Daily research brief (8 searches/day) | Tavily dashboard (partner credits; keep pay-as-you-go off) |
 | `STRIPE_READ_KEY` | Counting sales | Stripe → Developers → restricted key, Read on Checkout Sessions, Refunds, Disputes |
 | `STRIPE_PAYMENT_LINK` | Payment nudge emails | Stripe live-mode payment link |
 | `LANDING_PAGE_URL` | DMs and launch email | Teammate's landing page |
@@ -82,6 +84,7 @@ python -m agent.main     # one cycle; check logs/runs/ to see what it did
 | `approvals/pending/`, `approved/`, `rejected/` | Reel plans; moving one to `approved/` = go-ahead to publish, to `rejected/` = never publish, and new plans avoid it | yes |
 | `footage/` | Raw clips, photos, voiceovers per reel | no (too large) |
 | `creatives/` | Finished reels | videos no, index yes |
+| `data/research/` | Daily research brief with source links (AI-generated) | yes |
 | `logs/runs/` | Full transcript of every cycle | yes |
 | `logs/spend.jsonl`, `logs/touches.jsonl` | Every £ spent, every human step | yes |
 | `logs/reports/` | Daily profit + per-reel funnel (counts only) | yes |
