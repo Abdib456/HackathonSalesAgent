@@ -1,15 +1,18 @@
 # Voice
-- Tone in 3 words: (e.g. friendly, quick, no-nonsense)
-- Words/phrases we use:
-- Words/phrases we avoid:
-- Emoji: yes/no, which
+- Tone in 3 words: [?] (CMO)
+- Words/phrases we use: [?] (CMO)
+- Words/phrases we avoid: [?] (CMO)
+- Emoji: [?] (CMO)
 
 # Look
-- Colours / fonts used in the app (for on-screen text suggestions):
-- Style references (describe them, don't name other creators' content):
+- Colours / fonts used in the app (for on-screen text suggestions): [?] (CMO)
+- Style references (describe them, don't name other creators' content): [?] (CMO)
 
 # Claims we can make (only true ones)
-- e.g. "first edit free", "results in under a minute" (only if true)
+- "First try-on free"
+- "Only the area you choose changes"
+- "No subscription"
+- "From £3.49 for 5 try-ons"
 
 # AI disclosure wording
-- e.g. caption line: "Edited with AI help." + Instagram's AI label
+- Caption line: "Edited with AI." plus Instagram's AI label (required wherever the platform asks)
