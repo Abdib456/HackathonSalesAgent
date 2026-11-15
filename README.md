@@ -109,6 +109,18 @@ everyone who comments the keyword, and emails signups. It needs `agent/tools/ins
 `INSTAGRAM_*`, `RESEND_API_KEY`, `EMAIL_FROM`, `STRIPE_PAYMENT_LINK` and `APP_LIVE` keys.
 Code: `tools/make_reel.py`, `tools/email.py`; folders `footage/`, `creatives/`, `logs/outbound/`.
 
-## Hackathon rules
+## Hackathon rules (and how we keep them)
 
-*Added with the context commit.*
+| Rule | How |
+|---|---|
+| Only sales to strangers count: no friends, family, teammates, participants or existing clients | We don't buy, ask people we know to buy, or seed the waitlist. Any test purchase is refunded, and refunds are subtracted |
+| Live Stripe, same account as the read-only key on Shipyard; a sale counts only if charged and delivered before the freeze (18 Nov, 6pm UK) | The report reads live Stripe with a restricted read key (test keys are rejected) |
+| Refunds and chargebacks are subtracted | `stripe_sales.py` nets them out before profit |
+| £100 budget in total | Every paid call goes through `budget.check()` before and `budget.record()` after, logged to `logs/spend.jsonl`; warnings at £50, £75, £90; mirrored with `/spend` |
+| Every human action is a touch; keep them few | Plan moves are logged automatically; other steps with `python -m agent.logger touch`; code and prompt changes count; mirrored with `/touch` |
+| Official APIs only: no scraping, bots or fake engagement | Search uses the Tavily API; we post by hand; the agent never likes, follows or comments |
+| No cold DMs | In manual mode the agent sends no DMs. In `POSTING=api` mode it only DMs people who commented the keyword |
+| Disclose AI and label AI content | Every caption has an AI note, the reel carries an "AI-assisted" label, and Instagram's AI label is turned on |
+| Only content we have the rights to | Plans only use our own footage, our own photos and app screen recordings; no stock, brands, celebrities or music we don't own |
+| Emails follow UK PECR | Only in `POSTING=api` mode: every email has an unsubscribe line; STOP replies go to `data/unsubscribed.txt` |
+| Everything auditable | All runs, spend, touches and reports stay in `logs/` and are never deleted; secrets live only in `.env` (gitignored) and are redacted from logs |
