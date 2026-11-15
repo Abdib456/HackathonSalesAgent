@@ -23,13 +23,15 @@ Every reel link is tagged peitho.app/?ref=reel-NNN. Purchases happen at app.peit
 - Where people buy: the web app (app.peitho.app), live Stripe checkout
 
 # Audience
-- Who (age range, UK, interests): [?] (CMO)
+- Who (age range, UK, interests): (targeting assumptions to test, not proven facts) UK, about 18-34, people who care about personal style and already have photos they like of themselves. They post on Instagram or refresh a profile, follow fashion, and notice when an outfit lets a good photo down. Dating apps are not the focus.
 - The problem they have (in their words): "I like the photo (pose, backdrop, etc.) but the outfit could be better."
-- What makes them buy / what stops them: [?] (CMO)
-- Competitors or alternatives they use now: [?] (CMO)
+- What makes them buy / what stops them: (assumptions to test)
+  - Buy triggers: a photo they love with an outfit that's let them down; an upcoming post; a profile refresh; wanting to see an item on themselves before buying it.
+  - What stops them: the result looking fake or AI; distortion of the face; privacy; cost.
+- Competitors or alternatives they use now: general AI image editors (ChatGPT / gpt-image, Gemini and the like), which distort faces and jewellery; retailer virtual try-on; reshooting the photo; or keeping the outfit as shot.
 
 # What we can film
-- Who appears on camera: [?] (CMO)
+- Who appears on camera: [?] proposed default, awaiting Tim: real people from the team or consenting friends, using their own photos. No stock models, no AI-generated people.
 - Real material we own: app screen recordings, our own before/after edits
 - Anything we can't show: other people's photos without consent, brand logos, other creators' content
 
