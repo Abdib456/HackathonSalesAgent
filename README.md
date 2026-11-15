@@ -26,7 +26,7 @@ Every £ spent is checked against the £100 cap and logged. Every human step is 
 | 4 | Film and edit it in Edits / CapCut (with the AI voiceover, or record one), with an "AI-assisted" label on screen | Human | yes (log it, see below) |
 | 5 | Post on Instagram with the plan's caption; set the bio link the plan gives you | Human | yes |
 | 6 | Move the plan to `approvals/approved/`: marks it posted and frees a slot for the next plan | Human | logged automatically as the posting touch |
-| 7 | A stranger taps the bio link, signs up, uses the free edit, pays in the app | Customer + app | — |
+| 7 | A stranger taps the bio link, signs up, uses the free try-on, pays in the app | Customer + app | — |
 | 8 | Report → `logs/reports/YYYY-MM-DD.md`, refreshed every cycle | Agent | — |
 
 About 3 touches per posted reel. Log the ones the agent can't see (filming, editing) with:

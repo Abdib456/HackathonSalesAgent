@@ -27,12 +27,12 @@ TEMPLATES = {
     "launch": {
         "subject": "It's live: try outfits on before you buy",
         "body": "You joined the waitlist, so you're first to know: the app is live.\n\n"
-                "Your first try-on edit is free: {landing}\n",
+                "Your first try-on is free: {landing}\n",
     },
     "payment_nudge": {
-        "subject": "Liked your free try-on? Get more edits",
-        "body": "Thanks for trying your free edit.\n\n"
-                "Want more looks? Credit packs start at £3.49 for 5 edits: {payment_link}\n",
+        "subject": "Liked your free try-on? Get more",
+        "body": "Thanks for trying your free try-on.\n\n"
+                "Want more looks? Credit packs start at £3.49 for 5 try-ons: {payment_link}\n",
     },
 }
 

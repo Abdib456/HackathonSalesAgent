@@ -34,11 +34,12 @@ MAX_REJECTED_IN_BRIEF = 5  # most recent rejections passed to write_script
 MAX_RESEARCH_CHARS = 4000  # cap on the research brief passed to write_script
 VERSION_GAP_HOURS = 24     # hook versions of the same footage go out a day apart
 
-# Used until there's sales data to learn from. Move to agent/prompts/ with the context commit.
+# Used until there's sales data to learn from. Taken from the audience and claims
+# in agent/prompts/system.md: keep them in step if that changes.
 DEFAULT_ANGLES = [
-    "before/after: one photo, three outfits tried on",
-    "stop buying clothes you never wear",
-    "getting ready for an event with nothing to wear",
+    "a photo you love, let down by the outfit: change just the clothes, keep everything else",
+    "other AI editors warp your face and jewellery; only the area you outline changes",
+    "see a piece on yourself, in your own photo, before you buy it",
 ]
 
 

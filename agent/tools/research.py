@@ -32,15 +32,17 @@ SNIPPET_CHARS = 600  # per result, keeps the Claude prompt (and cost) small
 MAX_TOKENS = 4000
 RESEARCH_DIR = config.ROOT / "data" / "research"
 
+# Aimed at the audience and alternatives in agent/prompts/system.md. Generic on
+# purpose: no product name or private details go to the search API.
 QUERIES = [
-    "AI virtual outfit try-on app trends",
-    "fashion Instagram reels hooks that go viral",
+    "change outfit in a photo AI app",
+    "AI photo editor distorts face jewellery complaints",
+    "virtual try-on retailer launch",
+    "Instagram profile photo refresh trend",
+    "before and after outfit reel hook",
     "UK fashion trends this week",
-    "outfit ideas reels before and after",
-    "virtual try-on app marketing Instagram",
-    "what to wear event outfit trend UK",
-    "AI photo editing app launch Instagram growth",
-    "Instagram reels algorithm changes",
+    "fashion app Instagram reels marketing",
+    "Instagram reels algorithm update",
 ]
 
 TASK = """Below are this week's web search results. Write a short research brief
