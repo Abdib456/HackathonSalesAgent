@@ -1,12 +1,10 @@
 .env
+.venv/
 __pycache__/
 *.pyc
-footage/*
-!footage/ReadMe.md
 *.mp4
 *.mov
 *.m4a
 logs/outbound/*
 !logs/outbound/ReadMe.md
-data/unsubscribed.txt
 voiceovers/

@@ -1,6 +1,6 @@
 # tracks every £ spent, blocks anything over £100
 #
-# Every paid call (Claude, video tools, email sending, ads) goes through here:
+# Every paid call (Claude, Tavily, ElevenLabs, and any future ads) goes through here:
 #   1. check(estimate)  before the call: refuses if it would pass the cap
 #   2. record(actual)   after the call: logs it to logs/spend.jsonl
 # Spend comes off profit, so the log is also the evidence for the judges.

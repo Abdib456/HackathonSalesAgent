@@ -39,7 +39,8 @@ and mirror every touch with `/touch` (and every spend with `/spend`) in Discord.
 
 **Which reel sold?** The plan's bio link is `LANDING_PAGE_URL?ref=reel-NNN`. If the app
 passes that `ref` to Stripe as `client_reference_id`, the report credits each sale to
-its reel and the agent learns from it. If not, sales still count, but show as "unknown".
+its reel and the agent learns from it. It doesn't yet, so sales count but show as
+"unknown", and new plans rotate through the starting angles plus the research.
 
 ## The cycle
 
@@ -55,13 +56,14 @@ each) use partner credits.
 
 ## Where it runs
 
-On a Mac: `caffeinate -i python -m agent.main --loop` (keeps it awake). The agent's
-state is files you move by hand (plans) and logs we commit, so it runs where we work.
-Replit isn't needed for manual posting.
+Anywhere with Python 3.10+ and the `.env` keys. On a Mac: `caffeinate -i python -m agent.main --loop`
+(keeps it awake). The agent's state is files (plans you move by hand, logs we commit), so
+wherever it runs is where you move the plans and commit the logs from.
 
 ## Setup
 
 ```bash
+python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env     # then fill in the keys (never commit .env)
 python -m agent.main     # one cycle; check logs/runs/ to see what it did
@@ -75,10 +77,10 @@ python -m agent.main     # one cycle; check logs/runs/ to see what it did
 | `LANDING_PAGE_URL` | The tracked bio link in each plan | recommended |
 | `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | AI voiceovers. Voice ID from ElevenLabs → Voices (a library voice, or a teammate's own cloned voice with their consent) | optional (both = on) |
 | `ELEVENLABS_MODEL` | Override the voice model (default `eleven_multilingual_v2`) | optional |
-| `POSTING` | `manual` (default) or `api` | — |
 
-The app's context goes in `agent/prompts/system.md` and `brand.md` (the product,
-audience, tone). Until it's filled in, plans are generic.
+The app's context (product, audience, voice, look, allowed claims) is in
+`agent/prompts/system.md` and `brand.md`. Every Claude call reads both, so edit those,
+not the code, to change what the plans say.
 
 ## Folders
 
@@ -98,16 +100,47 @@ audience, tone). Until it's filled in, plans are generic.
 "AI-assisted" label, and turn on Instagram's AI label when posting. To redo one, delete
 the MP3 and run `python -m agent.tools.voiceover approvals/pending/reel-NNN.md`.
 
-## Optional: agent edits, publishes and DMs (`POSTING=api`)
+## How the code fits together
 
-Built but dormant. With `POSTING=api`, plans say "comment KEYWORD", the team drops
-footage into `footage/reel-NNN/`, the agent edits it with ffmpeg (9:16, captions,
-"AI-assisted" tag, up to 3 hook versions), publishes one a day after approval, DMs
-everyone who comments the keyword, and emails signups. It needs `agent/tools/instagram.py`
-(not written), `agent/analytics/signups.py` (not written), a Meta app with the
-`instagram_business_*` permissions, a public URL for `creatives/` (Replit), and the
-`INSTAGRAM_*`, `RESEND_API_KEY`, `EMAIL_FROM`, `STRIPE_PAYMENT_LINK` and `APP_LIVE` keys.
-Code: `tools/make_reel.py`, `tools/email.py`; folders `footage/`, `creatives/`, `logs/outbound/`.
+```
+agent/
+  main.py              the cycle: a list of steps, each in its own try block
+  config.py            every setting and .env key in one place
+  budget.py            check() before / record() after every paid call; £100 cap
+  logger.py            run transcripts, touches, outbound copies; scrubs secrets
+  prompts/             system.md + brand.md: the app context every Claude call reads
+  tools/
+    research.py        Tavily searches + Claude summary, once a day
+    write_script.py    Claude: one reel script, 5 scored hooks
+    propose.py         script -> approvals/pending/reel-NNN.md; reads plan moves
+    voiceover.py       ElevenLabs MP3 per plan (optional)
+  analytics/
+    stripe_sales.py    live sales, refunds, chargebacks (read-only key)
+    reports.py         profit + per-reel sales -> logs/reports/; feeds the learning loop
+```
+
+## Scaling later
+
+The agent is a list of steps in `main.py` → `cycle()`. To add something, write a
+`step_<name>(run)` function that skips (with `_skip`) when its keys aren't set, put any
+paid call between `budget.check()` and `budget.record()`, log what it does with
+`logger.log_event`, and add it to the list. Nothing else needs to change.
+
+Ideas, roughly in order of value:
+
+| Add | How |
+|---|---|
+| **Per-reel sales** | The app passes `?ref` from the landing page to Stripe as `client_reference_id`. No agent change: the report and learning loop pick it up |
+| **DMs to keyword commenters** | ManyChat (an official Meta partner) or the Instagram API. Only DM people who commented the keyword; copy every DM to `logs/outbound/` with `logger.save_outbound` |
+| **Emails to signups** | A `signups.py` reading the app's sign-ups, plus an email step (Resend). UK PECR: unsubscribe line, honour STOP |
+| **Auto-editing and auto-posting** | ffmpeg editing from dropped footage, and posting through the Instagram API (needs Meta app permissions). Multiple hook versions per filming |
+| **More channels** | A new tool per channel, same step pattern; the plan format is reusable |
+| **Paid boost** | Only once sales prove a reel works; through the budget like any other spend |
+
+Code removed in the cleanup (ffmpeg editing, hook versions, emails, the DM/publish
+contracts and a `POSTING=api` switch) is in git history: commit `ade9220`. Restore a file
+with `git checkout ade9220 -- agent/tools/make_reel.py` (or `email.py`); `main.py` at that
+commit shows how those steps were wired into the cycle.
 
 ## Hackathon rules (and how we keep them)
 
@@ -118,9 +151,9 @@ Code: `tools/make_reel.py`, `tools/email.py`; folders `footage/`, `creatives/`, 
 | Refunds and chargebacks are subtracted | `stripe_sales.py` nets them out before profit |
 | £100 budget in total | Every paid call goes through `budget.check()` before and `budget.record()` after, logged to `logs/spend.jsonl`; warnings at £50, £75, £90; mirrored with `/spend` |
 | Every human action is a touch; keep them few | Plan moves are logged automatically; other steps with `python -m agent.logger touch`; code and prompt changes count; mirrored with `/touch` |
-| Official APIs only: no scraping, bots or fake engagement | Search uses the Tavily API; we post by hand; the agent never likes, follows or comments |
-| No cold DMs | In manual mode the agent sends no DMs. In `POSTING=api` mode it only DMs people who commented the keyword |
+| Official APIs only: no scraping, bots or fake engagement | Search uses the Tavily API; we post by hand; the agent never likes, follows, comments or DMs |
+| No cold DMs | The agent sends no DMs. Any DM tool added later only messages people who commented the keyword |
 | Disclose AI and label AI content | Every caption has an AI note, the reel carries an "AI-assisted" label, and Instagram's AI label is turned on |
 | Only content we have the rights to | Plans only use our own footage, our own photos and app screen recordings; no stock, brands, celebrities or music we don't own |
-| Emails follow UK PECR | Only in `POSTING=api` mode: every email has an unsubscribe line; STOP replies go to `data/unsubscribed.txt` |
+| Emails follow UK PECR | The agent sends no emails. Any added later carry an unsubscribe line and honour STOP replies |
 | Everything auditable | All runs, spend, touches and reports stay in `logs/` and are never deleted; secrets live only in `.env` (gitignored) and are redacted from logs |

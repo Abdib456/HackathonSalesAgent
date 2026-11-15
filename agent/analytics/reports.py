@@ -1,15 +1,13 @@
-# joins it all by reel + keyword: comments -> DMs -> signups -> sales
+# daily report: profit, touches, and sales per reel
 #
-# One table per day in logs/reports/, so we (and the judges) can see which
-# reel made money, plus overall profit = net sales - spend. No personal data,
-# only counts. top_reels() feeds back into write_script: make more of what sells.
+# One table per day in logs/reports/, so we (and the judges) can see overall
+# profit = net sales - spend, and which reel made money. No personal data, only
+# counts. top_reels() feeds back into write_script: make more of what sells.
 #
-# Contract with the other tools (so their events can be joined here):
-#   make_reel  -> run event "reel_made"       {reel_id}
-#   instagram  -> run event "reel_published"  {reel_id, media_id}
-#   instagram  -> save_outbound("instagram_dm", ..., reel_id=...)
-#   signups    -> rows with "ref" = reel_id (from ?client_reference_id / ?ref)
-#   stripe     -> sales with "reel" = client_reference_id
+# How the events join up:
+#   main.step_approvals -> run event "reel_published" {reel_id} (plan moved to approved/)
+#   stripe_sales        -> sales with "reel" = client_reference_id (set by the app from ?ref,
+#                          once it passes it on; until then sales show as "unknown")
 
 import json
 from collections import defaultdict
@@ -32,37 +30,20 @@ def _run_events(*names: str) -> list[dict]:
     return events
 
 
-def _dms_by_reel() -> dict:
-    counts = defaultdict(int)
-    for p in config.OUTBOUND_DIR.glob("*_instagram_dm.json"):
-        counts[json.loads(p.read_text(encoding="utf-8")).get("reel_id") or "unknown"] += 1
-    return counts
-
-
 def _ideas() -> dict:
     ideas = {}
     for folder in (propose.PENDING, propose.APPROVED):
         for p in folder.glob("reel-*.md") if folder.exists() else []:
-            for v in propose.versions(propose.read_plan(p)):  # each hook version is its own row
-                ideas[v["reel_id"]] = {"idea": v["script"]["idea"], "hook": v["script"]["hook"],
-                                       "keyword": v["script"]["keyword"]}
+            plan = propose.read_plan(p)
+            ideas[plan["reel_id"]] = {"idea": plan["script"]["idea"], "hook": plan["script"]["hook"]}
     return ideas
 
 
-def by_reel(sales: list[dict], signups: list[dict]) -> dict:
-    """Funnel per reel: made -> published -> DMs -> signups -> free edits -> sales -> £."""
-    rows = defaultdict(lambda: {"made": False, "published": False, "dms": 0, "signups": 0,
-                                "free_edits": 0, "sales": 0, "gbp": 0.0})
-    for e in _run_events("reel_made"):
-        rows[e["reel_id"]]["made"] = True
+def by_reel(sales: list[dict]) -> dict:
+    """Per reel: posted? -> sales -> £ (sales without a reel go under "unknown")."""
+    rows = defaultdict(lambda: {"published": False, "sales": 0, "gbp": 0.0})
     for e in _run_events("reel_published"):
         rows[e["reel_id"]]["published"] = True
-    for reel, n in _dms_by_reel().items():
-        rows[reel]["dms"] += n
-    for s in signups:
-        r = rows[s.get("ref") or "unknown"]
-        r["signups"] += 1
-        r["free_edits"] += bool(s.get("free_edit_used"))
     for s in sales:
         if s["before_freeze"]:
             r = rows[s.get("reel") or "unknown"]
@@ -75,9 +56,9 @@ def by_reel(sales: list[dict], signups: list[dict]) -> dict:
 
 
 def top_reels(rows: dict, n: int = 3) -> list[dict]:
-    """Best reels by money, then DMs. For write_script to learn from."""
+    """Best posted reels by money. For write_script to learn from."""
     ranked = sorted(((k, v) for k, v in rows.items() if k != "unknown" and v["published"]),
-                    key=lambda kv: (kv[1]["gbp"], kv[1]["dms"]), reverse=True)
+                    key=lambda kv: kv[1]["gbp"], reverse=True)
     return [{"reel_id": k, **v} for k, v in ranked[:n]]
 
 
@@ -98,24 +79,23 @@ def write_report(stripe_summary: dict, rows: dict) -> str:
         f"- Spend: £{spend:.2f} of £{config.BUDGET_CAP_GBP:.0f}",
         f"- **Profit: £{profit:.2f}**",
         f"- Human touches logged: {touches_count()}", "",
-        "| Reel | Idea | Hook | Published | DMs | Signups | Free edits | Sales | £ |",
-        "|---|---|---|---|---|---|---|---|---|",
+        "| Reel | Idea | Hook | Posted | Sales | £ |",
+        "|---|---|---|---|---|---|",
     ]
     for reel_id, r in sorted(rows.items()):
-        lines.append(f"| {reel_id} | {r.get('idea', '')} | {r.get('hook', '')} | {'yes' if r['published'] else 'no'} | {r['dms']} "
-                     f"| {r['signups']} | {r['free_edits']} | {r['sales']} | {r['gbp']:.2f} |")
+        lines.append(f"| {reel_id} | {r.get('idea', '')} | {r.get('hook', '')} "
+                     f"| {'yes' if r['published'] else 'no'} | {r['sales']} | {r['gbp']:.2f} |")
     text = "\n".join(lines) + "\n"
     REPORTS_DIR.mkdir(parents=True, exist_ok=True)
     (REPORTS_DIR / f"{datetime.now(timezone.utc):%Y-%m-%d}.md").write_text(text, encoding="utf-8")
     return text
 
 
-def build(signups: list[dict] | None = None) -> str:
+def build() -> str:
     """Fetch live sales, join everything, save and return the report."""
     from agent.analytics import stripe_sales
     sales = stripe_sales.sales()
-    summary = stripe_sales.summary(sales)
-    return write_report(summary, by_reel(sales, signups or []))
+    return write_report(stripe_sales.summary(sales), by_reel(sales))
 
 
 if __name__ == "__main__":

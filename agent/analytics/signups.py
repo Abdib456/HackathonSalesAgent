@@ -1,1 +1,0 @@
-# reads signups from the app's backend

@@ -1,1 +1,1 @@
-# Agent drops reel plans here. Once footage is in, it edits the reel; you approve the finished reel by moving the plan to approved/
+# The agent drops reel plans here (2 waiting at most). Film, edit and post one, then move it to approved/. Not worth it? Move it to rejected/.

@@ -1,8 +1,8 @@
-# writes the reel script, caption, and comment-keyword CTA
+# writes the reel script, caption and "link in bio" call to action
 #
 # One Claude call per reel idea. In the same call Claude writes 5 hooks and
 # scores them; the code (not Claude) picks the highest score and puts it on
-# screen in scene 1. The rest are kept, ranked, for hook versions later.
+# screen in scene 1. The rest are kept, ranked, in the plan for the team to try.
 # Product and brand context come from
 # agent/prompts/*.md, so this file stays generic. Every call is checked
 # against the budget first, recorded after, and logged to the run transcript.
@@ -28,7 +28,7 @@ TASK = """Write one Instagram reel for the product described above.
 
 Rules:
 - 25-30 seconds total. The first 2 seconds must hook a stranger scrolling past.
-{cta}
+- End with a call to action: tap the link in our bio to try it.
 - Only use footage we can film ourselves or app screen recordings. No
   celebrities, brands, music or content we don't own.
 - The reel is made with AI help: the caption must include a short, honest AI note.
@@ -44,17 +44,6 @@ Hooks:
 """
 
 N_HOOKS = 5
-
-CTA = {
-    "manual": "- End with a call to action: tap the link in our bio to try it.\n"
-              "- Set keyword to an empty string (no comment keyword).",
-    "api": "- End with a call to action: comment ONE keyword to get the link by DM.\n"
-           "- The keyword is a single short word in capitals, easy to type.",
-}
-
-
-def _task() -> str:
-    return TASK.format(cta=CTA["manual" if config.MANUAL else "api"])
 
 SCHEMA = {
     "type": "object",
@@ -89,10 +78,9 @@ SCHEMA = {
                 "additionalProperties": False,
             },
         },
-        "keyword": {"type": "string"},
         "caption": {"type": "string"},
     },
-    "required": ["idea", "hooks", "scenes", "keyword", "caption"],
+    "required": ["idea", "hooks", "scenes", "caption"],
     "additionalProperties": False,
 }
 
@@ -124,7 +112,7 @@ def pick_hook(script: dict) -> dict:
 def write_script(brief: str, run: Path) -> dict:
     """Ask Claude for one reel script. `brief` is today's angle, e.g. 'before/after try-on'."""
     system = _system_prompt()
-    user = f"{_task()}\nToday's angle: {brief}"
+    user = f"{TASK}\nToday's angle: {brief}"
 
     # Worst case: every output token used, input estimated at ~3 chars per token
     estimate = _cost_gbp("worst", (len(system) + len(user)) // 3, MAX_TOKENS)

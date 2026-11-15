@@ -1,4 +1,4 @@
-# loads .env, budget cap, landing page URL
+# loads .env, budget cap, landing page URL, log paths
 #
 # One place for every setting, so no other file reads os.environ or
 # hardcodes a key. Secrets come only from .env (gitignored).
@@ -25,15 +25,10 @@ USD_TO_GBP = 0.80
 # Log locations (kept forever as audit evidence)
 LOGS_DIR = ROOT / "logs"
 RUNS_DIR = LOGS_DIR / "runs"
-OUTBOUND_DIR = LOGS_DIR / "outbound"
+OUTBOUND_DIR = LOGS_DIR / "outbound"  # copies of any DM/email sent (none yet; see logger.save_outbound)
 SPEND_LOG = LOGS_DIR / "spend.jsonl"
 TOUCHES_LOG = LOGS_DIR / "touches.jsonl"
 
-# How reels get to Instagram:
-#   manual (default)  humans film, edit (Edits/CapCut) and post by hand; reels say "link in bio"
-#   api               the agent edits (ffmpeg), publishes and DMs keyword commenters (needs instagram.py)
-POSTING = os.getenv("POSTING", "manual").strip().lower()
-MANUAL = POSTING != "api"
 
 def ai_voice() -> bool:
     """ElevenLabs voiceovers are on once both keys are in .env."""
@@ -41,8 +36,7 @@ def ai_voice() -> bool:
 
 
 # Non-secret settings
-LANDING_PAGE_URL = os.getenv("LANDING_PAGE_URL", "")
-STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "")  # live-mode payment link
+LANDING_PAGE_URL = os.getenv("LANDING_PAGE_URL", "")  # the bio link; plans add ?ref=reel-NNN
 
 
 def require(name: str) -> str:
