@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 
 from agent import budget, config, logger
 from agent.analytics import reports
-from agent.tools import email, make_reel, propose, research
+from agent.tools import email, make_reel, propose, research, voiceover
 from agent.tools.write_script import write_script
 
 LOOP_MINUTES = 15
@@ -128,6 +128,20 @@ def step_new_plans(run) -> None:
     propose.propose(write_script(brief, run), run)
 
 
+def step_voiceovers(run) -> None:
+    """AI voiceover (ElevenLabs) for each plan waiting to be filmed, once."""
+    if not _configured("ELEVENLABS_API_KEY", "ELEVENLABS_VOICE_ID"):
+        return _skip(run, "voiceovers", "ELEVENLABS_API_KEY / ELEVENLABS_VOICE_ID not set")
+    for path in sorted(propose.PENDING.glob("reel-*.md")) if propose.PENDING.exists() else []:
+        try:
+            voiceover.make_voiceover(propose.read_plan(path), run)
+        except budget.BudgetExceeded:
+            raise
+        except Exception as e:  # e.g. bad key or no credits: log once, retry next cycle
+            logger.log_event(run, "voiceover_failed", reel_id=path.stem, error=str(e))
+            break
+
+
 def step_make_reels(run) -> None:
     """Edit any plan whose footage has arrived (pending, or approved before it was edited)."""
     if config.MANUAL:
@@ -199,6 +213,7 @@ def cycle() -> None:
         ("approvals", lambda: step_approvals(run)),
         ("research", lambda: step_research(run)),
         ("new_plans", lambda: step_new_plans(run)),
+        ("voiceovers", lambda: step_voiceovers(run)),
         ("make_reels", lambda: step_make_reels(run)),
         ("publish", lambda: step_publish(run)),
         ("dms", lambda: step_dms(run)),

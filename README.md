@@ -9,8 +9,9 @@ our web app through a live Stripe payment link.
 
 1. **Researches** what's working in fashion / try-on reels this week (Tavily search + a Claude summary, with sources).
 2. **Writes reel plans** with Claude: idea, 5 hooks scored 1-10, shot list, voiceover, caption with an AI note, "link in bio" call to action.
-3. **Learns**: new plans lean towards reels that made money and away from plans we rejected.
-4. **Reports**: profit (live Stripe sales − refunds/chargebacks − spend), touches, and sales per reel.
+3. **Voices them** (optional, ElevenLabs): an AI voiceover MP3 per plan, ready to drop into the edit.
+4. **Learns**: new plans lean towards reels that made money and away from plans we rejected.
+5. **Reports**: profit (live Stripe sales − refunds/chargebacks − spend), touches, and sales per reel.
 
 Every £ spent is checked against the £100 cap and logged. Every human step is logged as a touch.
 
@@ -20,8 +21,9 @@ Every £ spent is checked against the £100 cap and logged. Every human step is 
 |---|------|-----|--------|
 | 1 | Daily research brief → `data/research/YYYY-MM-DD.md` | Agent | — |
 | 2 | Reel plan → `approvals/pending/reel-NNN.md` (keeps 2 ready, max 2 new a day) | Agent | — |
+| 2b | AI voiceover → `voiceovers/reel-NNN.mp3` (only with ElevenLabs keys) | Agent | — |
 | 3 | Read the plan. Weak? Move it to `approvals/rejected/` (optional `Reason: ...` line) | Human | yes (logged automatically) |
-| 4 | Film and edit it in Edits / CapCut, with an "AI-assisted" label on screen | Human | yes (log it, see below) |
+| 4 | Film and edit it in Edits / CapCut (with the AI voiceover, or record one), with an "AI-assisted" label on screen | Human | yes (log it, see below) |
 | 5 | Post on Instagram with the plan's caption; set the bio link the plan gives you | Human | yes |
 | 6 | Move the plan to `approvals/approved/`: marks it posted and frees a slot for the next plan | Human | logged automatically as the posting touch |
 | 7 | A stranger taps the bio link, signs up, uses the free edit, pays in the app | Customer + app | — |
@@ -45,10 +47,11 @@ its reel and the agent learns from it. If not, sales still count, but show as "u
 minutes** until Ctrl+C. Stopping is safe: all state is in files.
 
 Each cycle: log plan moves as touches → research (once a day) → new plans (if fewer
-than 2 waiting) → report. Anything not set up yet is skipped and logged, never fatal.
+than 2 waiting) → AI voiceovers for waiting plans (once each) → report. Anything not set up yet is skipped and logged, never fatal.
 
 Cost: most cycles cost £0. Plans call Claude (~4p each, max 2/day), plus one research
-summary a day (~5p). The 8 daily Tavily searches use partner credits.
+summary a day (~5p). The 8 daily Tavily searches and the voiceovers (~400 characters
+each) use partner credits.
 
 ## Where it runs
 
@@ -70,6 +73,8 @@ python -m agent.main     # one cycle; check logs/runs/ to see what it did
 | `TAVILY_API_KEY` | Daily research brief | **yes** (partner credits; keep pay-as-you-go off) |
 | `STRIPE_READ_KEY` | The profit report. Restricted `rk_live_` key, Core = Read, same Stripe account as Shipyard | **yes** |
 | `LANDING_PAGE_URL` | The tracked bio link in each plan | recommended |
+| `ELEVENLABS_API_KEY`, `ELEVENLABS_VOICE_ID` | AI voiceovers. Voice ID from ElevenLabs → Voices (a library voice, or a teammate's own cloned voice with their consent) | optional (both = on) |
+| `ELEVENLABS_MODEL` | Override the voice model (default `eleven_multilingual_v2`) | optional |
 | `POSTING` | `manual` (default) or `api` | — |
 
 The app's context goes in `agent/prompts/system.md` and `brand.md` (the product,
@@ -84,9 +89,14 @@ audience, tone). Until it's filled in, plans are generic.
 | `approvals/approved/` | Posted reels (moved here by us) | yes |
 | `approvals/rejected/` | Plans we said no to; new plans avoid them | yes |
 | `data/research/` | Daily research brief with source links (AI-generated) | yes |
+| `voiceovers/` | AI voiceover MP3 per plan (the text sent is in `logs/runs/`) | no (audio, regenerable) |
 | `logs/runs/` | Full transcript of every cycle | yes |
 | `logs/spend.jsonl`, `logs/touches.jsonl` | Every £ spent, every human step | yes |
 | `logs/reports/` | Daily profit + per-reel sales (counts only) | yes |
+
+**AI voiceovers must be disclosed.** Keep the caption's AI note and the on-screen
+"AI-assisted" label, and turn on Instagram's AI label when posting. To redo one, delete
+the MP3 and run `python -m agent.tools.voiceover approvals/pending/reel-NNN.md`.
 
 ## Optional: agent edits, publishes and DMs (`POSTING=api`)
 

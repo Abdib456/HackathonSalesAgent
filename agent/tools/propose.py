@@ -101,7 +101,7 @@ A guide: adapt it freely. Photos are fine for static shots.
 |---|------|------|----------------|-----------|
 {rows}
 
-## Full voiceover (record in one take)
+## Full voiceover ({"AI voiceover: `voiceovers/" + reel_id + ".mp3` (made on the agent's next run), or record it yourself" if config.ai_voice() else "record in one take"})
 {voiceover}
 
 ## Caption

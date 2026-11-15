@@ -9,3 +9,4 @@ footage/*
 logs/outbound/*
 !logs/outbound/ReadMe.md
 data/unsubscribed.txt
+voiceovers/

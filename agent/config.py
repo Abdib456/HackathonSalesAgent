@@ -35,6 +35,11 @@ TOUCHES_LOG = LOGS_DIR / "touches.jsonl"
 POSTING = os.getenv("POSTING", "manual").strip().lower()
 MANUAL = POSTING != "api"
 
+def ai_voice() -> bool:
+    """ElevenLabs voiceovers are on once both keys are in .env."""
+    return bool(os.getenv("ELEVENLABS_API_KEY") and os.getenv("ELEVENLABS_VOICE_ID"))
+
+
 # Non-secret settings
 LANDING_PAGE_URL = os.getenv("LANDING_PAGE_URL", "")
 STRIPE_PAYMENT_LINK = os.getenv("STRIPE_PAYMENT_LINK", "")  # live-mode payment link
