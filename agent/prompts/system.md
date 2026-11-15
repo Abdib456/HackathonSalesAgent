@@ -31,7 +31,7 @@ Every reel link is tagged peitho.app/?ref=reel-NNN. Purchases happen at app.peit
 - Competitors or alternatives they use now: general AI image editors (ChatGPT / gpt-image, Gemini and the like), which distort faces and jewellery; retailer virtual try-on; reshooting the photo; or keeping the outfit as shot.
 
 # What we can film
-- Who appears on camera: [?] proposed default, awaiting Tim: real people from the team or consenting friends, using their own photos. No stock models, no AI-generated people.
+- Who appears on camera: Tim and/or Abdi (the founders). The before/after photos are of them. Occasionally friends who have used the app and agreed to appear, with their own photos. No stock models, no AI-generated people.
 - Real material we own: app screen recordings, our own before/after edits
 - Anything we can't show: other people's photos without consent, brand logos, other creators' content
 
