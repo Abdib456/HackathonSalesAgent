@@ -5,6 +5,31 @@ Shipyard "Make Me Money" hackathon. It does the research, scripting and reportin
 behind our Instagram reels; we film, edit and post them by hand. Strangers buy in
 our web app through a live Stripe payment link.
 
+## What actually ran (written 19 Nov, after the freeze)
+
+The rest of this README describes how the agent is designed to work. This section
+records what it actually did during the hackathon, as shown by the logs in this repo.
+
+- **One full test cycle, 15 Nov at 18:49 UK** (`logs/runs/2026-11-15T18-49-45_cycle.jsonl`):
+  - Research: 8 Tavily searches and one Claude summary → `data/research/2026-11-15.md`.
+  - One reel plan written by Claude → `approvals/pending/reel-001.md`.
+  - Voiceover: the first attempt failed (ElevenLabs `402 Payment Required`). A retry
+    at 19:06 recorded no result. A third at 19:13, with a different voice, made
+    the MP3 (`logs/runs/2026-11-15T19-13-00_voiceover.jsonl`). The MP3 is not in git.
+  - Profit report: **skipped**, because `STRIPE_READ_KEY` was not set. So
+    `logs/reports/` holds no report.
+- **Total agent spend: £0.13** (two Claude calls; Tavily and ElevenLabs used partner
+  credits, logged at £0). See `logs/spend.jsonl`.
+- **The 15-minute loop:** [CONFIRM: "was not run" / "ran on ... from ... to ..., logs in ..."].
+- **Touches** were logged with `/touch` in Discord, not in `logs/touches.jsonl` (empty).
+  The Discord log is the full record.
+- **Reels:** `reel-001` was not moved to `approved/`, so the repo records no reel as
+  posted. [CONFIRM: whether any reel was posted by hand, and which.]
+- **Sales:** [CONFIRM: number and total from Stripe, or "none"]. Stripe proof is in the
+  evidence pack, not in this repo.
+- These logs were committed on 19 Nov (commit `cc122d3`), after the freeze. They are
+  unchanged from the 15 Nov run.
+
 ## What the agent does
 
 1. **Researches** what's working in fashion / try-on reels this week (Tavily search + a Claude summary, with sources).
