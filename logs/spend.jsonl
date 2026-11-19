@@ -1,0 +1,11 @@
+{"timestamp": "2026-11-15T18:49:47+00:00", "gbp": 0.0, "for": "tavily: search", "query": "change outfit in a photo AI app", "credits": 1}
+{"timestamp": "2026-11-15T18:49:48+00:00", "gbp": 0.0, "for": "tavily: search", "query": "AI photo editor distorts face jewellery complaints", "credits": 1}
+{"timestamp": "2026-11-15T18:49:50+00:00", "gbp": 0.0, "for": "tavily: search", "query": "virtual try-on retailer launch", "credits": 1}
+{"timestamp": "2026-11-15T18:49:52+00:00", "gbp": 0.0, "for": "tavily: search", "query": "Instagram profile photo refresh trend", "credits": 1}
+{"timestamp": "2026-11-15T18:49:53+00:00", "gbp": 0.0, "for": "tavily: search", "query": "before and after outfit reel hook", "credits": 1}
+{"timestamp": "2026-11-15T18:49:54+00:00", "gbp": 0.0, "for": "tavily: search", "query": "UK fashion trends this week", "credits": 1}
+{"timestamp": "2026-11-15T18:49:56+00:00", "gbp": 0.0, "for": "tavily: search", "query": "fashion app Instagram reels marketing", "credits": 1}
+{"timestamp": "2026-11-15T18:49:57+00:00", "gbp": 0.0, "for": "tavily: search", "query": "Instagram reels algorithm update", "credits": 1}
+{"timestamp": "2026-11-15T18:50:17+00:00", "gbp": 0.0714, "for": "claude: research summary", "model": "claude-opus-5-5", "request_id": "req_011Ch5DT14RjT9gCVu4dGE8S", "input_tokens": 11810, "output_tokens": 2101}
+{"timestamp": "2026-11-15T18:50:48+00:00", "gbp": 0.0598, "for": "claude: write_script", "model": "claude-opus-5-5", "request_id": "req_011Ch5DUTAbMi887fBmKHggk", "input_tokens": 4067, "output_tokens": 2922}
+{"timestamp": "2026-11-15T19:13:02+00:00", "gbp": 0.0, "for": "elevenlabs: voiceover", "reel_id": "reel-001", "characters": 528, "model": "eleven_multilingual_v2"}
