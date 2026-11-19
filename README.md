@@ -20,15 +20,22 @@ records what it actually did during the hackathon, as shown by the logs in this 
     `logs/reports/` holds no report.
 - **Total agent spend: £0.13** (two Claude calls; Tavily and ElevenLabs used partner
   credits, logged at £0). See `logs/spend.jsonl`.
-- **The 15-minute loop:** [CONFIRM: "was not run" / "ran on ... from ... to ..., logs in ..."].
 - **Touches** were logged with `/touch` in Discord, not in `logs/touches.jsonl` (empty).
   The Discord log is the full record.
-- **Reels:** `reel-001` was not moved to `approved/`, so the repo records no reel as
-  posted. [CONFIRM: whether any reel was posted by hand, and which.]
-- **Sales:** [CONFIRM: number and total from Stripe, or "none"]. Stripe proof is in the
-  evidence pack, not in this repo.
+- **Reels:** we weren't happy with the agent's plan (`reel-001`), so we didn't use it.
+  It stays in `pending/`. Instead we made our own reel by hand, without the agent.
 - These logs were committed on 19 Nov (commit `cc122d3`), after the freeze. They are
   unchanged from the 15 Nov run.
+
+### Where to find the agent logs
+
+| File | What it shows |
+|---|---|
+| [`logs/runs/2026-11-15T18-49-45_cycle.jsonl`](logs/runs/2026-11-15T18-49-45_cycle.jsonl) | The full cycle: every Claude prompt and response, every Tavily search, each step's result |
+| [`logs/runs/2026-11-15T19-06-32_voiceover.jsonl`](logs/runs/2026-11-15T19-06-32_voiceover.jsonl), [`…19-13-00_voiceover.jsonl`](logs/runs/2026-11-15T19-13-00_voiceover.jsonl) | The voiceover retries: text sent, voice, result |
+| [`logs/spend.jsonl`](logs/spend.jsonl) | Every paid call, with its cost in £ (Claude request IDs included) |
+| [`data/research/2026-11-15.md`](data/research/2026-11-15.md) | The research brief the agent wrote, with sources |
+| [`approvals/pending/reel-001.md`](approvals/pending/reel-001.md) | The reel plan the agent wrote: 5 scored hooks, shot list, voiceover, caption |
 
 ## What the agent does
 
